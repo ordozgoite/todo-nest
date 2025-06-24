@@ -4,51 +4,69 @@ import { v4 as uuid } from 'uuid';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 import { NotFoundException } from '@nestjs/common';
+import { supabase } from '../config/supabase.client';
 
 @Injectable()
 export class TasksService {
-    private tasks: Task[] = [];
+    async findAll(): Promise<Task[]> {
+        const { data, error } = await supabase
+            .from('tasks')
+            .select('*')
+            .order('createdAt', { ascending: false });
 
-    findAll(): Task[] {
-        return this.tasks;
+        if (error) throw new Error(error.message);
+        return data as Task[];
     }
 
-    create(createTaskDto: CreateTaskDto): Task {
-        const { title, description } = createTaskDto;
+    async create(dto: CreateTaskDto): Promise<Task> {
+        const { title, description } = dto;
 
-        const newTask: Task = {
-            id: uuid(),
-            title,
-            description,
-            completed: false,
-            status: TaskStatus.PENDING,
-            createdAt: new Date(),
-        };
+        const { data, error } = await supabase.from('tasks').insert([
+            {
+                title,
+                description,
+                completed: false,
+                status: 'pending',
+            },
+        ]).select().single();
 
-        this.tasks.push(newTask);
-        return newTask;
+        if (error) throw new Error(error.message);
+        return data as Task;
     }
 
-    updateStatus(id: string, updateDto: UpdateTaskStatusDto): Task {
-        const task = this.tasks.find((task) => task.id === id);
+    async updateStatus(id: string, dto: UpdateTaskStatusDto): Promise<Task> {
+        const newStatus = dto.completed ? TaskStatus.COMPLETED : TaskStatus.PENDING;
 
-        if (!task) {
-            throw new NotFoundException(`Task with id ${id} not found.`);
+        const { data, error } = await supabase
+            .from('tasks')
+            .update({
+                completed: dto.completed,
+                status: newStatus,
+            })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        if (!data) throw new Error(`Tarefa com id ${id} não encontrada.`);
+
+        return data as Task;
+    }
+
+    async remove(id: string): Promise<void> {
+        const { data, error } = await supabase
+            .from('tasks')
+            .delete()
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) {
+            throw new Error(error.message);
         }
 
-        task.completed = updateDto.completed;
-        task.status = updateDto.completed ? TaskStatus.COMPLETED : TaskStatus.PENDING;
-
-        return task;
-    }
-
-    remove(id: string): void {
-        const index = this.tasks.findIndex((task) => task.id === id);
-
-        if (index === -1) {
-            throw new NotFoundException(`Task with id ${id} not found.`);
+        if (!data) {
+            throw new NotFoundException(`Tarefa com id ${id} não encontrada.`);
         }
-
-        this.tasks.splice(index, 1);
     }
 }

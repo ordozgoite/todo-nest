@@ -9,26 +9,26 @@ export class TasksController {
     constructor(private readonly tasksService: TasksService) { }
 
     @Get()
-    findAll(): Task[] {
+    async findAll(): Promise<Task[]> {
         return this.tasksService.findAll();
     }
 
     @Post()
-    create(@Body() createTaskDto: CreateTaskDto): Task {
-        return this.tasksService.create(createTaskDto);
+    async create(@Body() dto: CreateTaskDto): Promise<Task> {
+        return this.tasksService.create(dto);
     }
 
     @Patch(':id')
-    updateStatus(
+    async updateStatus(
         @Param('id') id: string,
         @Body() updateDto: UpdateTaskStatusDto,
-    ): Task {
+    ): Promise<Task> {
         return this.tasksService.updateStatus(id, updateDto);
     }
 
     @Delete(':id')
     @HttpCode(204)
-    remove(@Param('id') id: string): void {
-        this.tasksService.remove(id);
+    async remove(@Param('id') id: string): Promise<void> {
+        await this.tasksService.remove(id);
     }
 }
