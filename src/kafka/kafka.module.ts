@@ -1,8 +1,24 @@
 import { Module } from '@nestjs/common';
-import { KafkaService } from './kafka.service';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 
 @Module({
-  providers: [KafkaService],
-  exports: [KafkaService],
+  imports: [
+    ClientsModule.register([
+      {
+        name: 'KAFKA_SERVICE',
+        transport: Transport.KAFKA,
+        options: {
+          client: {
+            clientId: 'todo-api',
+            brokers: [process.env.KAFKA_BROKER || 'kafka:29092'],
+          },
+          producer: {
+            allowAutoTopicCreation: true,
+          },
+        },
+      },
+    ]),
+  ],
+  exports: [ClientsModule],
 })
 export class KafkaModule {}

@@ -1,15 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { Task, TaskStatus } from './entities/task.entity';
-import { v4 as uuid } from 'uuid';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
-import { NotFoundException } from '@nestjs/common';
 import { supabase } from '../config/supabase.client';
-import { KafkaService } from '../kafka/kafka.service';
+import { ClientKafka } from '@nestjs/microservices';
 
 @Injectable()
 export class TasksService {
-    constructor(private readonly kafkaService: KafkaService) { }
+    constructor(
+        @Inject('KAFKA_SERVICE')
+        private readonly kafkaClient: ClientKafka,
+    ) { }
 
     async findAll(): Promise<Task[]> {
         const tasks = await this.fetchAllTasks();
@@ -18,19 +19,28 @@ export class TasksService {
 
     async create(dto: CreateTaskDto): Promise<Task> {
         const task = await this.insertTask(dto);
-        await this.kafkaService.sendMessage('task_events', 'task_created', task);
+        this.kafkaClient.emit('task_events', {
+            eventType: 'task_created',
+            data: task,
+        });
         return task;
     }
 
     async updateStatus(id: string, dto: UpdateTaskStatusDto): Promise<Task> {
         const task = await this.updateTaskStatus(id, dto);
-        await this.kafkaService.sendMessage('task_events', 'task_updated', task);
+        this.kafkaClient.emit('task_events', {
+            eventType: 'task_updated',
+            data: task,
+        });
         return task;
     }
 
     async remove(id: string): Promise<void> {
         const task = await this.deleteTask(id);
-        await this.kafkaService.sendMessage('task_events', 'task_deleted', task);
+        this.kafkaClient.emit('task_events', {
+            eventType: 'task_deleted',
+            data: task,
+        });
     }
 
     // ===== PRIVATE METHODS =====
