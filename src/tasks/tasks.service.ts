@@ -2,15 +2,23 @@ import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { Task, TaskStatus } from './entities/task.entity';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
-import { supabase } from '../config/supabase.client';
+// import { supabase } from '../config/supabase.client';
 import { ClientKafka } from '@nestjs/microservices';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseService } from 'src/supabase/supabase.service';
 
 @Injectable()
 export class TasksService {
+    private readonly supabase: SupabaseClient; 
+
     constructor(
         @Inject('KAFKA_SERVICE')
         private readonly kafkaClient: ClientKafka,
-    ) { }
+
+        private readonly supabaseService: SupabaseService
+    ) {
+        this.supabase = this.supabaseService.getClient();
+    }
 
     async findAll(): Promise<Task[]> {
         const tasks = await this.fetchAllTasks();
@@ -46,7 +54,7 @@ export class TasksService {
     // ===== PRIVATE METHODS =====
 
     private async fetchAllTasks(): Promise<Task[]> {
-        const { data, error } = await supabase
+        const { data, error } = await this.supabase
             .from('tasks')
             .select('*')
             .order('createdAt', { ascending: false });
@@ -57,7 +65,7 @@ export class TasksService {
 
     private async insertTask(dto: CreateTaskDto): Promise<Task> {
         const { title, description } = dto;
-        const { data, error } = await supabase
+        const { data, error } = await this.supabase
             .from('tasks')
             .insert([{ title, description, completed: false, status: 'pending' }])
             .select()
@@ -69,7 +77,7 @@ export class TasksService {
 
     private async updateTaskStatus(id: string, dto: UpdateTaskStatusDto): Promise<Task> {
         const newStatus = dto.completed ? TaskStatus.COMPLETED : TaskStatus.PENDING;
-        const { data, error } = await supabase
+        const { data, error } = await this.supabase
             .from('tasks')
             .update({ completed: dto.completed, status: newStatus })
             .eq('id', id)
@@ -83,7 +91,7 @@ export class TasksService {
     }
 
     private async deleteTask(id: string): Promise<Task> {
-        const { data, error } = await supabase
+        const { data, error } = await this.supabase
             .from('tasks')
             .delete()
             .eq('id', id)

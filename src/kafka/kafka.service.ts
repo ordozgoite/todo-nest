@@ -1,18 +1,24 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Kafka, Producer } from 'kafkajs';
-import { KAFKA_BROKERS, KAFKA_CLIENT_ID } from './kafka.constants';
+import { TKafkaConfig } from 'src/config';
 
 @Injectable()
 export class KafkaService implements OnModuleInit {
-  private kafka = new Kafka({
-    clientId: KAFKA_CLIENT_ID,
-    brokers: KAFKA_BROKERS,
-  });
-
+  private readonly kafkaConfig: TKafkaConfig;
   private producer: Producer;
 
+  constructor(private readonly configService: ConfigService) {
+    this.kafkaConfig = this.configService.get<TKafkaConfig>('kafka')!;
+  }
+
   async onModuleInit() {
-    this.producer = this.kafka.producer();
+    const kafka = new Kafka({
+      clientId: this.kafkaConfig.clientId,
+      brokers: this.kafkaConfig.brokersUrl,
+    });
+
+    this.producer = kafka.producer();
     await this.producer.connect();
   }
 

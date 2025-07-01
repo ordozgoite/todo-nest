@@ -1,20 +1,30 @@
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
-    ClientsModule.register([
+    ConfigModule,
+    ClientsModule.registerAsync([
       {
         name: 'KAFKA_SERVICE',
-        transport: Transport.KAFKA,
-        options: {
-          client: {
-            clientId: 'todo-api',
-            brokers: [process.env.KAFKA_BROKER || 'kafka:29092'],
-          },
-          producer: {
-            allowAutoTopicCreation: true,
-          },
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => {
+          const kafkaConfig = configService.get('kafka');
+
+          return {
+            transport: Transport.KAFKA,
+            options: {
+              client: {
+                clientId: kafkaConfig.clientId,
+                brokers: kafkaConfig.brokersUrl,
+              },
+              producer: {
+                allowAutoTopicCreation: true,
+              },
+            },
+          };
         },
       },
     ]),
