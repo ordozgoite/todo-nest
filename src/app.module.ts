@@ -8,11 +8,16 @@ import { SupabaseModule } from './supabase/supabase.module';
 import config from './config';
 
 @Module({
-  imports: [TasksModule, KafkaModule, ConfigModule.forRoot({
-    isGlobal: true,
-    load: [config],
-  }), SupabaseModule],
+  imports: [
+    TasksModule,
+    KafkaModule,
+    SupabaseModule,
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [config],
+    })
+  ],
   controllers: [AppController],
   providers: [AppService]
 })
-export class AppModule {}
+export class AppModule { }
