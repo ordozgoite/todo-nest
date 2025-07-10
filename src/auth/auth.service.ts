@@ -18,7 +18,7 @@ export class AuthService {
             email,
             password
         })
-        if (error) throw new BadRequestException(error.message);
+        if (error) throw new Error(error.message);
         return data;
     }
 
@@ -28,7 +28,7 @@ export class AuthService {
             email,
             password
         })
-        if (error) throw new BadRequestException(error.message);
+        if (error) throw new Error(error.message);
         return data;
     }
 
@@ -36,7 +36,7 @@ export class AuthService {
         const { data, error } = await this.supabase.auth.refreshSession({
             refresh_token: refreshToken
         })
-        if (error) throw new BadRequestException(error.message);
+        if (error) throw new Error(error.message);
         return data;
     }
 }
