@@ -5,6 +5,7 @@ import { TasksModule } from './tasks/tasks.module';
 import { KafkaModule } from './kafka/kafka.module';
 import { ConfigModule } from '@nestjs/config';
 import { SupabaseModule } from './supabase/supabase.module';
+import { AuthModule } from './auth/auth.module';
 import config from './config';
 
 @Module({
@@ -15,7 +16,8 @@ import config from './config';
     ConfigModule.forRoot({
       isGlobal: true,
       load: [config],
-    })
+    }),
+    AuthModule
   ],
   controllers: [AppController],
   providers: [AppService]
